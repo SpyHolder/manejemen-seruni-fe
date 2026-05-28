@@ -33,10 +33,10 @@ function ProtectedRoute({ children, requiredRole }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-surface">
+      <div className="flex items-center justify-center h-screen bg-stone-50 dark:bg-stone-900">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-text-secondary text-sm">Memuat...</p>
+          <p className="text-stone-500 text-sm">Memuat...</p>
         </div>
       </div>
     );
@@ -55,7 +55,7 @@ function PublicRoute({ children }) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex items-center justify-center h-screen bg-stone-50 dark:bg-stone-900">
         <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -116,12 +116,13 @@ export default function App() {
                 duration: 3000,
                 style: {
                   borderRadius: '12px',
-                  background: '#1a1a2e',
-                  color: '#fff',
+                  background: '#292524',
+                  color: '#fafaf9',
                   fontSize: '14px',
                   padding: '12px 16px',
+                  border: '1px solid #44403c',
                 },
-                success: { iconTheme: { primary: '#10b981', secondary: '#fff' } },
+                success: { iconTheme: { primary: '#22c55e', secondary: '#fff' } },
                 error: { iconTheme: { primary: '#ef4444', secondary: '#fff' } },
               }}
             />

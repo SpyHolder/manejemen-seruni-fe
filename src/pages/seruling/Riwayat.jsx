@@ -23,69 +23,69 @@ export default function Riwayat() {
   const totalHari = transaksi.reduce((s, t) => s + t.total_harga, 0);
 
   return (
-    <div className="bg-[#fafaf9] min-h-screen px-4 pt-6 pb-20 animate-fade-in space-y-6">
+    <div className="bg-white dark:bg-stone-900 min-h-screen px-4 pt-6 pb-20 animate-fade-in space-y-6">
       
       <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Riwayat Produk & Transaksi</h1>
-        <p className="text-sm text-gray-500 dark:text-gray-400 dark:text-gray-500">Lihat histori penjualan Anda hari ini</p>
+        <h1 className="text-xl font-bold text-stone-900 dark:text-white tracking-tight">Riwayat Transaksi</h1>
+        <p className="text-sm text-stone-500">Lihat histori penjualan Anda hari ini</p>
       </div>
 
       {/* Filter / Date Picker */}
-      <div className="bg-white dark:bg-[#1f2937] rounded-xl border border-gray-200 dark:border-gray-800 p-2 flex items-center justify-between shadow-sm">
+      <div className="bg-stone-50 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 p-2 flex items-center justify-between">
         <div className="flex items-center gap-2 pl-2">
-          <Calendar size={18} className="text-gray-400 dark:text-gray-500" />
-          <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Pilih Tanggal:</span>
+          <Calendar size={18} className="text-stone-400" />
+          <span className="text-sm font-medium text-stone-600 dark:text-stone-300">Pilih Tanggal:</span>
         </div>
         <input 
           type="date" 
           value={tanggal} 
           onChange={e => setTanggal(e.target.value)} 
-          className="px-3 py-1.5 rounded-lg bg-gray-50 dark:bg-[#111827] border-none text-sm font-semibold focus:ring-0 cursor-pointer" 
+          className="px-3 py-1.5 rounded-lg bg-white dark:bg-stone-900 border border-stone-200 dark:border-stone-700 text-sm font-semibold focus:ring-0 cursor-pointer dark:text-white" 
         />
       </div>
 
       {/* Summary Card */}
-      <div className="bg-white dark:bg-[#1f2937] rounded-xl border border-gray-200 dark:border-gray-800 p-5 shadow-sm flex items-center justify-between">
+      <div className="bg-stone-50 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 p-5 flex items-center justify-between">
         <div>
-          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide">Total Pendapatan</p>
-          <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{formatCurrency(totalHari)}</p>
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">Total Pendapatan</p>
+          <p className="text-2xl font-black text-stone-900 dark:text-white mt-1">{formatCurrency(totalHari)}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs font-bold text-gray-500 dark:text-gray-400 dark:text-gray-500 uppercase tracking-wide">Transaksi</p>
-          <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{transaksi.length}</p>
+          <p className="text-xs font-bold text-stone-500 uppercase tracking-wide">Transaksi</p>
+          <p className="text-2xl font-black text-stone-900 dark:text-white mt-1">{transaksi.length}</p>
         </div>
       </div>
 
       {/* Transaction List */}
       <div>
-        <h2 className="text-sm font-bold text-gray-900 dark:text-white mb-3">Daftar Transaksi</h2>
+        <h2 className="text-sm font-bold text-stone-900 dark:text-white mb-3">Daftar Transaksi</h2>
         
         {loading ? (
-          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-gray-900 border-t-transparent rounded-full animate-spin" /></div>
+          <div className="flex justify-center py-12"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" /></div>
         ) : transaksi.length === 0 ? (
-          <div className="bg-white dark:bg-[#1f2937] rounded-xl p-8 border border-gray-200 dark:border-gray-800 text-center shadow-sm">
-            <div className="w-16 h-16 bg-gray-50 dark:bg-[#111827] rounded-full flex items-center justify-center mx-auto mb-4">
-              <Package size={24} className="text-gray-300" />
+          <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-8 border border-stone-200 dark:border-stone-700 text-center">
+            <div className="w-16 h-16 bg-stone-100 dark:bg-stone-700 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Package size={24} className="text-stone-300" />
             </div>
-            <p className="text-gray-500 dark:text-gray-400 dark:text-gray-500 font-medium text-sm">Belum ada transaksi di tanggal ini</p>
+            <p className="text-stone-500 font-medium text-sm">Belum ada transaksi di tanggal ini</p>
           </div>
         ) : (
           <div className="space-y-3">
             {transaksi.map((trx, i) => (
-              <div key={trx.id} className="bg-white dark:bg-[#1f2937] rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-sm">
-                <button onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between p-4 hover:bg-gray-50 dark:bg-[#111827] transition-colors">
+              <div key={trx.id} className="bg-stone-50 dark:bg-stone-800 rounded-xl border border-stone-200 dark:border-stone-700 overflow-hidden">
+                <button onClick={() => setExpanded(expanded === i ? null : i)} className="w-full flex items-center justify-between p-4 hover:bg-stone-100 dark:hover:bg-stone-700/50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${trx.metode_pembayaran === 'cash' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${trx.metode_pembayaran === 'cash' ? 'bg-green-50 dark:bg-green-500/10 text-green-600' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600'}`}>
                       <ShoppingCart size={18} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{trx.metode_pembayaran.toUpperCase()}</p>
-                      <p className="text-xs font-medium text-gray-500 dark:text-gray-400 dark:text-gray-500 mt-0.5">{formatTime(trx.created_at)}</p>
+                      <p className="text-sm font-bold text-stone-900 dark:text-white">{trx.metode_pembayaran.toUpperCase()}</p>
+                      <p className="text-xs font-medium text-stone-500 mt-0.5">{formatTime(trx.created_at)}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
-                    <span className="font-bold text-sm text-gray-900 dark:text-white">{formatCurrency(trx.total_harga)}</span>
-                    <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 dark:text-gray-400 dark:text-gray-500">
+                    <span className="font-bold text-sm text-stone-900 dark:text-white">{formatCurrency(trx.total_harga)}</span>
+                    <div className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-600 flex items-center justify-center text-stone-500">
                       {expanded === i ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                     </div>
                   </div>
@@ -93,15 +93,15 @@ export default function Riwayat() {
                 
                 {/* Expanded Details */}
                 {expanded === i && (
-                  <div className="px-4 pb-4 pt-2 border-t border-gray-100 dark:border-gray-800/50 bg-gray-50 dark:bg-[#111827]/50">
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wide mb-2">Item Detail</p>
+                  <div className="px-4 pb-4 pt-2 border-t border-stone-200 dark:border-stone-700 bg-white dark:bg-stone-900">
+                    <p className="text-[10px] font-bold text-stone-400 uppercase tracking-wide mb-2">Item Detail</p>
                     {trx.details?.map((d, j) => (
                       <div key={j} className="flex justify-between items-center py-1.5">
                         <div className="flex items-center gap-2 text-sm">
-                          <span className="font-semibold text-gray-900 dark:text-white">{d.produk?.nama_produk}</span>
-                          <span className="text-xs font-bold text-gray-400 dark:text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded-md">x{d.jumlah}</span>
+                          <span className="font-semibold text-stone-900 dark:text-white">{d.produk?.nama_produk}</span>
+                          <span className="text-xs font-bold text-stone-400 bg-stone-100 dark:bg-stone-700 px-1.5 py-0.5 rounded-md">x{d.jumlah}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-700 dark:text-gray-200">{formatCurrency(d.subtotal)}</span>
+                        <span className="text-sm font-bold text-stone-700 dark:text-stone-200">{formatCurrency(d.subtotal)}</span>
                       </div>
                     ))}
                   </div>
