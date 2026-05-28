@@ -55,7 +55,7 @@ export default function Produk() {
   const openEdit = (item) => { 
     setEditingItem(item); 
     setForm({ nama_produk: item.nama_produk, kategori: item.kategori, harga: item.harga, gambar: null }); 
-    setImagePreview(item.gambar ? `http://localhost:5000${item.gambar}` : null); // Note: Assuming proxy doesn't rewrite image URLs perfectly or we can just use the path
+    setImagePreview(item.gambar ? `${import.meta.env.VITE_API_URL || ''}${item.gambar}` : null); // Note: Assuming proxy doesn't rewrite image URLs perfectly or we can just use the path
     setShowModal(true); 
   };
 
@@ -247,7 +247,7 @@ export default function Produk() {
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-xl bg-orange-50 dark:bg-orange-500/10 flex items-center justify-center overflow-hidden shrink-0 border border-stone-200 dark:border-stone-700">
                           {item.gambar ? (
-                            <img src={item.gambar.startsWith('http') ? item.gambar : `http://localhost:5000${item.gambar}`} alt={item.nama_produk} className="w-full h-full object-cover" />
+                            <img src={item.gambar.startsWith('http') ? item.gambar : `${import.meta.env.VITE_API_URL || ''}${item.gambar}`} alt={item.nama_produk} className="w-full h-full object-cover" />
                           ) : (
                             <Package size={16} className="text-primary" />
                           )}

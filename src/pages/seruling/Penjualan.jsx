@@ -96,7 +96,7 @@ export default function Penjualan() {
                   {/* Image Section */}
                   <div className="aspect-square bg-stone-100 dark:bg-stone-900 w-full relative">
                     {p.gambar ? (
-                      <img src={p.gambar.startsWith('http') ? p.gambar : `http://localhost:5000${p.gambar}`} alt={p.nama_produk} className="w-full h-full object-cover" />
+                      <img src={p.gambar.startsWith('http') ? p.gambar : `${import.meta.env.VITE_API_URL || ''}${p.gambar}`} alt={p.nama_produk} className="w-full h-full object-cover" />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-stone-300 dark:text-stone-700">
                         <span className="text-4xl">☕</span>
@@ -169,7 +169,7 @@ export default function Penjualan() {
                   <div key={item.produk_id} className="flex gap-3 items-center bg-stone-50 dark:bg-stone-800/50 p-3 rounded-xl border border-stone-100 dark:border-stone-700/50">
                     <div className="w-14 h-14 bg-stone-200 dark:bg-stone-700 rounded-lg overflow-hidden shrink-0">
                        {productInfo?.gambar ? (
-                          <img src={productInfo.gambar.startsWith('http') ? productInfo.gambar : `http://localhost:5000${productInfo.gambar}`} alt={item.nama} className="w-full h-full object-cover" />
+                          <img src={productInfo.gambar.startsWith('http') ? productInfo.gambar : `${import.meta.env.VITE_API_URL || ''}${productInfo.gambar}`} alt={item.nama} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-stone-400">☕</div>
                         )}
