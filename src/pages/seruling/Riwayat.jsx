@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { formatCurrency, formatTime } from '../../utils/formatters';
-import { ShoppingCart, ChevronDown, ChevronRight, Package, Calendar } from 'lucide-react';
+import { ShoppingCart, ChevronDown, ChevronRight, Package, Calendar, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Riwayat() {
@@ -18,6 +18,16 @@ export default function Riwayat() {
       setTransaksi(res.data.data);
     } catch { toast.error('Gagal memuat'); }
     finally { setLoading(false); }
+  };
+
+  const cancelQris = async (id) => {
+    try {
+      await api.post(`/transaksi/${id}/cancel-qris`);
+      toast.success('Transaksi QRIS dibatalkan');
+      fetchRiwayat();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Gagal membatalkan');
+    }
   };
 
   const totalHari = transaksi.reduce((s, t) => s + t.total_harga, 0);
@@ -79,7 +89,19 @@ export default function Riwayat() {
                       <ShoppingCart size={18} />
                     </div>
                     <div className="text-left">
-                      <p className="text-sm font-bold text-stone-900 dark:text-white">{trx.metode_pembayaran.toUpperCase()}</p>
+                      <p className="text-sm font-bold text-stone-900 dark:text-white flex items-center gap-2">
+                        {trx.metode_pembayaran.toUpperCase()}
+                        {trx.metode_pembayaran === 'qris' && trx.payment_status && (
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                            trx.payment_status === 'paid' ? 'bg-green-100 text-green-600 dark:bg-green-500/10 dark:text-green-400' :
+                            trx.payment_status === 'expired' ? 'bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-400' :
+                            trx.payment_status === 'cancelled' ? 'bg-stone-200 text-stone-500 dark:bg-stone-600 dark:text-stone-300' :
+                            'bg-yellow-100 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'
+                          }`}>
+                            {trx.payment_status === 'paid' ? 'LUNAS' : trx.payment_status === 'expired' ? 'EXPIRED' : trx.payment_status === 'cancelled' ? 'BATAL' : 'PENDING'}
+                          </span>
+                        )}
+                      </p>
                       <p className="text-xs font-medium text-stone-500 mt-0.5">{formatTime(trx.created_at)}</p>
                     </div>
                   </div>
@@ -104,6 +126,15 @@ export default function Riwayat() {
                         <span className="text-sm font-bold text-stone-700 dark:text-stone-200">{formatCurrency(d.subtotal)}</span>
                       </div>
                     ))}
+                    {/* Cancel button for pending QRIS */}
+                    {trx.metode_pembayaran === 'qris' && trx.payment_status === 'pending' && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); cancelQris(trx.id); }}
+                        className="mt-3 w-full py-2.5 rounded-xl font-bold text-sm bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/30 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      >
+                        <XCircle size={16} /> Batalkan Transaksi
+                      </button>
+                    )}
                   </div>
                 )}
               </div>

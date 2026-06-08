@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '../../services/api';
 import { formatCurrency } from '../../utils/formatters';
-import { Plus, Minus, ShoppingCart, Loader2, CreditCard, Banknote } from 'lucide-react';
+import { Plus, Minus, ShoppingCart, Loader2, CreditCard, Banknote, X, Clock, CheckCircle2, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
+
+// QRIS expiry in seconds (15 minutes)
+const QRIS_EXPIRY_SECONDS = 15 * 60;
 
 export default function Penjualan() {
   const [produk, setProduk] = useState([]);
@@ -14,7 +17,24 @@ export default function Penjualan() {
   const [cartOpen, setCartOpen] = useState(false);
   const [cetakStruk, setCetakStruk] = useState(true);
 
+  // QRIS payment state
+  const [qrisModal, setQrisModal] = useState(false);
+  const [qrisData, setQrisData] = useState(null); // { id, qris_url, total_harga, kode_transaksi }
+  const [qrisStatus, setQrisStatus] = useState('pending'); // 'pending' | 'paid' | 'expired'
+  const [countdown, setCountdown] = useState(QRIS_EXPIRY_SECONDS);
+  const pollingRef = useRef(null);
+  const countdownRef = useRef(null);
+
   useEffect(() => { fetchData(); }, []);
+
+  // Cleanup polling & countdown on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+    };
+  }, []);
+
   const fetchData = async () => {
     try {
       const [produkRes, shiftRes] = await Promise.all([api.get('/produk'), api.get('/shift/today')]);
@@ -40,26 +60,124 @@ export default function Penjualan() {
 
   const totalHarga = cartItems.reduce((s, i) => s + i.subtotal, 0);
 
+  // Start QRIS polling and countdown
+  const startQrisPolling = useCallback((transaksiId) => {
+    // Clear any existing intervals
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+
+    // Reset countdown
+    setCountdown(QRIS_EXPIRY_SECONDS);
+    setQrisStatus('pending');
+
+    // Start countdown timer
+    countdownRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          // Time expired
+          clearInterval(countdownRef.current);
+          clearInterval(pollingRef.current);
+          setQrisStatus('expired');
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Start polling for payment status
+    pollingRef.current = setInterval(async () => {
+      try {
+        const res = await api.get(`/transaksi/${transaksiId}/payment-status`);
+        const { payment_status } = res.data.data;
+
+        if (payment_status === 'paid') {
+          clearInterval(pollingRef.current);
+          clearInterval(countdownRef.current);
+          setQrisStatus('paid');
+          toast.success('Pembayaran QRIS berhasil! 🎉');
+          // Auto-close after 2 seconds
+          setTimeout(() => {
+            closeQrisModal();
+          }, 2000);
+        } else if (payment_status === 'expired') {
+          clearInterval(pollingRef.current);
+          clearInterval(countdownRef.current);
+          setQrisStatus('expired');
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 3000);
+  }, []);
+
+  const closeQrisModal = useCallback(() => {
+    if (pollingRef.current) clearInterval(pollingRef.current);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    setQrisModal(false);
+    setQrisData(null);
+    setQrisStatus('pending');
+    setCountdown(QRIS_EXPIRY_SECONDS);
+  }, []);
+
+  const cancelQris = useCallback(async () => {
+    if (!qrisData) return;
+    try {
+      await api.post(`/transaksi/${qrisData.id}/cancel-qris`);
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      if (countdownRef.current) clearInterval(countdownRef.current);
+      setQrisStatus('cancelled');
+      toast.success('Transaksi QRIS dibatalkan');
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Gagal membatalkan');
+    }
+  }, [qrisData]);
+
   const handleSubmit = async () => {
     if (!shift) { toast.error('Anda harus online terlebih dahulu'); return; }
     if (cartItems.length === 0) { toast.error('Keranjang kosong'); return; }
     setSubmitting(true);
     try {
-      await api.post('/transaksi', {
+      const res = await api.post('/transaksi', {
         items: cartItems.map(i => ({ produk_id: i.produk_id, jumlah: i.jumlah })),
         metode_pembayaran: metode,
         shift_assignment_id: shift.id,
       });
-      toast.success('Transaksi berhasil! 🎉');
-      setCart({});
-      setCartOpen(false);
-      // Logika cetak struk (sementara hanya console log)
-      if (cetakStruk) {
-        console.log('Mencetak struk untuk transaksi ini...');
-        // Nantinya dihubungkan dengan library print Bluetooth/Thermal
+
+      const transaksiData = res.data.data;
+      console.log('QRIS URL:', transaksiData.qris_url);
+
+      if (metode === 'qris' && transaksiData.qris_url) {
+        // Open QRIS modal
+        setQrisData({
+          id: transaksiData.id,
+          qris_url: transaksiData.qris_url,
+          total_harga: transaksiData.total_harga,
+          kode_transaksi: transaksiData.kode_transaksi,
+        });
+        setQrisModal(true);
+        setCartOpen(false);
+        setCart({});
+        startQrisPolling(transaksiData.id);
+      } else {
+        // Cash payment — done immediately
+        toast.success('Transaksi berhasil! 🎉');
+        setCart({});
+        setCartOpen(false);
+        // Logika cetak struk (sementara hanya console log)
+        if (cetakStruk) {
+          console.log('Mencetak struk untuk transaksi ini...');
+          // Nantinya dihubungkan dengan library print Bluetooth/Thermal
+        }
       }
     } catch (e) { toast.error(e.response?.data?.message || 'Gagal'); }
     finally { setSubmitting(false); }
+  };
+
+  // Format countdown to MM:SS
+  const formatCountdown = (seconds) => {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
   if (loading) return <div className="flex items-center justify-center h-screen bg-white dark:bg-stone-900"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;
@@ -222,6 +340,139 @@ export default function Penjualan() {
           </div>
         </div>
       )}
+
+      {/* QRIS Payment Modal */}
+      {qrisModal && qrisData && (
+        <div className="relative z-[70]">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-md transition-opacity"></div>
+          <div className="fixed inset-0 flex items-center justify-center p-4">
+            <div className="w-full max-w-sm bg-white dark:bg-stone-900 rounded-3xl shadow-2xl border border-stone-200 dark:border-stone-700 animate-slide-up overflow-hidden">
+              
+              {/* Header */}
+              <div className="px-6 pt-6 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-lg text-stone-900 dark:text-white">Pembayaran QRIS</h3>
+                  <p className="text-xs font-mono text-stone-400 mt-0.5">{qrisData.kode_transaksi}</p>
+                </div>
+                <button 
+                  onClick={closeQrisModal}
+                  className="p-2 rounded-xl hover:bg-stone-100 dark:hover:bg-stone-800 text-stone-400 transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* QR Code Area */}
+              <div className="px-6 pb-4">
+                <div className="relative bg-white rounded-2xl p-4 border border-stone-100 dark:border-stone-700 shadow-inner">
+                  {qrisStatus === 'pending' && (
+                    <>
+                      <img 
+                        src={qrisData.qris_url} 
+                        alt="QRIS QR Code" 
+                        className="w-full aspect-square object-contain rounded-xl"
+                      />
+                      {/* Scanning animation overlay */}
+                      <div className="absolute inset-4 pointer-events-none overflow-hidden rounded-xl">
+                        <div className="absolute w-full h-0.5 bg-gradient-to-r from-transparent via-orange-500 to-transparent animate-qris-scan" 
+                             style={{ animation: 'qrisScan 2s ease-in-out infinite' }}></div>
+                      </div>
+                    </>
+                  )}
+                  {qrisStatus === 'paid' && (
+                    <div className="w-full aspect-square flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-green-100 dark:bg-green-500/10 flex items-center justify-center mb-4 animate-fade-in">
+                        <CheckCircle2 size={48} className="text-green-500" />
+                      </div>
+                      <p className="font-bold text-lg text-green-600 dark:text-green-400">Pembayaran Berhasil!</p>
+                      <p className="text-sm text-stone-500 mt-1">Terima kasih 🎉</p>
+                    </div>
+                  )}
+                  {qrisStatus === 'expired' && (
+                    <div className="w-full aspect-square flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-red-100 dark:bg-red-500/10 flex items-center justify-center mb-4 animate-fade-in">
+                        <AlertTriangle size={48} className="text-red-500" />
+                      </div>
+                      <p className="font-bold text-lg text-red-600 dark:text-red-400">QRIS Kedaluwarsa</p>
+                      <p className="text-sm text-stone-500 mt-1">Silakan buat transaksi baru</p>
+                    </div>
+                  )}
+                  {qrisStatus === 'cancelled' && (
+                    <div className="w-full aspect-square flex flex-col items-center justify-center">
+                      <div className="w-20 h-20 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-4 animate-fade-in">
+                        <X size={48} className="text-stone-400" />
+                      </div>
+                      <p className="font-bold text-lg text-stone-600 dark:text-stone-300">Transaksi Dibatalkan</p>
+                      <p className="text-sm text-stone-500 mt-1">Stok telah dikembalikan</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Payment Info */}
+              <div className="px-6 pb-4">
+                <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-4 border border-stone-100 dark:border-stone-700/50">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm text-stone-500">Total Bayar</span>
+                    <span className="text-xl font-black text-stone-900 dark:text-white">{formatCurrency(qrisData.total_harga)}</span>
+                  </div>
+                  {qrisStatus === 'pending' && (
+                    <div className="flex items-center justify-center gap-2 py-2 px-3 rounded-lg bg-orange-50 dark:bg-orange-500/10 border border-orange-200 dark:border-orange-500/20">
+                      <Clock size={16} className="text-orange-500" />
+                      <span className={`font-mono font-bold text-lg ${countdown <= 60 ? 'text-red-500 animate-pulse' : 'text-orange-600 dark:text-orange-400'}`}>
+                        {formatCountdown(countdown)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Instructions / Actions */}
+              <div className="px-6 pb-6">
+                {qrisStatus === 'pending' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-stone-400 text-center leading-relaxed">
+                      Buka aplikasi e-wallet (GoPay, OVO, DANA, dll) kemudian scan QR code di atas untuk membayar
+                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs font-medium text-stone-500">Menunggu pembayaran...</span>
+                    </div>
+                    <button 
+                      onClick={cancelQris}
+                      className="w-full py-3 rounded-xl font-bold text-sm bg-red-50 dark:bg-red-500/10 text-red-500 hover:bg-red-100 dark:hover:bg-red-500/20 border border-red-200 dark:border-red-500/30 transition-all active:scale-[0.98]"
+                    >
+                      Batalkan Transaksi
+                    </button>
+                  </div>
+                )}
+                {(qrisStatus === 'paid' || qrisStatus === 'expired' || qrisStatus === 'cancelled') && (
+                  <button 
+                    onClick={closeQrisModal}
+                    className={`w-full py-3.5 rounded-xl font-bold text-sm transition-all active:scale-[0.98] ${
+                      qrisStatus === 'paid'
+                        ? 'bg-green-500 hover:bg-green-600 text-white shadow-lg shadow-green-500/20'
+                        : 'bg-stone-200 dark:bg-stone-700 hover:bg-stone-300 dark:hover:bg-stone-600 text-stone-700 dark:text-stone-200'
+                    }`}
+                  >
+                    {qrisStatus === 'paid' ? 'Selesai' : 'Tutup'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QRIS Scan Animation CSS */}
+      <style>{`
+        @keyframes qrisScan {
+          0%, 100% { top: 0; opacity: 0; }
+          10% { opacity: 1; }
+          50% { top: calc(100% - 2px); opacity: 1; }
+          60% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }
