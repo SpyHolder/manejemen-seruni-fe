@@ -174,12 +174,13 @@ export default function Transaksi() {
               <th className="text-left px-6 py-3.5 font-semibold text-stone-500">Gerobak</th>
               <th className="text-right px-6 py-3.5 font-semibold text-stone-500">Total</th>
               <th className="text-center px-6 py-3.5 font-semibold text-stone-500">Metode</th>
+              <th className="text-center px-6 py-3.5 font-semibold text-stone-500">Status</th>
               <th className="text-center px-6 py-3.5 font-semibold text-stone-500">Waktu</th>
               <th className="text-center px-6 py-3.5 font-semibold text-stone-500">Aksi</th>
             </tr></thead>
             <tbody>
-              {loading ? <tr><td colSpan={8} className="px-6 py-12 text-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr> :
-              transaksi.length === 0 ? <tr><td colSpan={8} className="px-6 py-12 text-center text-stone-400">Tidak ada transaksi</td></tr> :
+              {loading ? <tr><td colSpan={9} className="px-6 py-12 text-center"><div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" /></td></tr> :
+              transaksi.length === 0 ? <tr><td colSpan={9} className="px-6 py-12 text-center text-stone-400">Tidak ada transaksi</td></tr> :
               transaksi.map(trx => (
                 <tr key={trx.id} className={`border-b border-stone-100 dark:border-stone-700/50 hover:bg-stone-50 dark:hover:bg-stone-700/30 transition-colors ${selectedIds.includes(trx.id) ? 'bg-orange-50/50 dark:bg-orange-900/10' : ''}`}>
                   <td className="px-4 py-4 text-center">
@@ -190,6 +191,20 @@ export default function Transaksi() {
                   <td className="px-6 py-4 text-stone-500">{trx.gerobak?.nama_gerobak}</td>
                   <td className="px-6 py-4 text-right font-semibold text-stone-900 dark:text-white">{formatCurrency(trx.total_harga)}</td>
                   <td className="px-6 py-4 text-center"><span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${trx.metode_pembayaran === 'cash' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' : 'bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400'}`}>{trx.metode_pembayaran.toUpperCase()}</span></td>
+                  <td className="px-6 py-4 text-center">
+                    {trx.metode_pembayaran === 'qris' ? (
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${
+                        trx.payment_status === 'paid' ? 'bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400' :
+                        trx.payment_status === 'expired' ? 'bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400' :
+                        trx.payment_status === 'cancelled' ? 'bg-stone-100 text-stone-500 dark:bg-stone-800 dark:text-stone-400' :
+                        'bg-yellow-50 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400'
+                      }`}>
+                        {trx.payment_status === 'paid' ? 'LUNAS' : trx.payment_status === 'expired' ? 'EXPIRED' : trx.payment_status === 'cancelled' ? 'BATAL' : 'PENDING'}
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-green-50 text-green-600 dark:bg-green-500/10 dark:text-green-400">LUNAS</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-center text-stone-500 text-xs">{formatTime(trx.created_at)}</td>
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-1">
